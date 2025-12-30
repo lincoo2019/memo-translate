@@ -1,77 +1,77 @@
 package com.shengyu.memo.service
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.shengyu.memo.dto.AnalyzeResponse
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
-import org.springframework.web.client.RestClient
+import org.springframework.web.reactive.function.client.WebClient
+import reactor.core.publisher.Flux
 
 @Service
 class OpenAiService(
     @Value("\${spring.ai.openai.api-key}") private val apiKey: String,
     @Value("\${spring.ai.openai.base-url}") private val baseUrl: String,
-    @Value("\${spring.ai.openai.chat.options.model}") private val model: String,
-    private val objectMapper: ObjectMapper
+    @Value("\${spring.ai.openai.chat.options.model}") private val model: String
 ) {
     private val logger = LoggerFactory.getLogger(OpenAiService::class.java)
     
-    private val restClient = RestClient.builder()
+    private val webClient = WebClient.builder()
         .baseUrl(baseUrl)
+        .defaultHeader("Authorization", "Bearer $apiKey")
         .build()
 
-    fun analyzeSentence(text: String): AnalyzeResponse {
-        logger.info("Analyzing text with model $model: ${text.take(50)}...")
+    fun analyzeSentenceStream(text: String): Flux<String> {
+        logger.info("Streaming analysis for: ${text.take(50)}...")
         
         val systemPrompt = """
-            You are an expert English tutor helping Chinese learners.
-            Analyze the given English sentence and return ONLY a valid JSON object with this exact structure:
-            {
-              "grammar": "Detailed grammar analysis in Chinese",
-              "phrases": ["key phrase 1", "key phrase 2"],
-              "memoryTip": "A creative mnemonic tip in Chinese"
-            }
-            Do not include markdown formatting. Return only raw JSON.
+            You are an expert English tutor. Analyze the sentence.
+            Structure your response EXACTLY like this (use these markers):
+            [grammar]分析句子的语法结构、时态等。
+            [phrases]列出关键短语，逗号隔开。
+            [tip]给出一个有趣的记忆点。
+            
+            Analyze: "$text"
         """.trimIndent()
 
         val requestBody = mapOf(
             "model" to model,
             "messages" to listOf(
-                mapOf("role" to "system", "content" to systemPrompt),
-                mapOf("role" to "user", "content" to "Analyze: \"$text\"")
+                mapOf("role" to "user", "content" to systemPrompt)
             ),
+            "stream" to true,
             "temperature" to 0.7
         )
 
-        try {
-            val response = restClient.post()
-                .uri("/chat/completions")
-                .header("Authorization", "Bearer $apiKey")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(requestBody)
-                .retrieve()
-                .body(Map::class.java) as Map<*, *>
+        return webClient.post()
+            .uri("/chat/completions")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(requestBody)
+            .retrieve()
+            .bodyToFlux(String::class.java)
+            .handle<String> { line, sink ->
+                val data = if (line.startsWith("data:")) {
+                    line.substring(5).trim()
+                } else {
+                    line.trim()
+                }
 
-            val choices = response["choices"] as? List<*>
-            val message = (choices?.firstOrNull() as? Map<*, *>)?.get("message") as? Map<*, *>
-            val content = message?.get("content") as? String
-                ?: throw RuntimeException("Empty AI response")
-
-            val cleanJson = content.trim()
-                .removePrefix("```json").removePrefix("```")
-                .removeSuffix("```").trim()
-
-            logger.info("AI Response: $cleanJson")
-
-            return objectMapper.readValue(cleanJson, AnalyzeResponse::class.java)
-        } catch (e: Exception) {
-            logger.error("AI Service Error", e)
-            return AnalyzeResponse(
-                grammar = "AI调用失败: ${e.message}",
-                phrases = listOf("error"),
-                memoryTip = "请检查API配置"
-            )
-        }
+                if (data == "[DONE]" || data.isEmpty()) return@handle
+                
+                try {
+                    val regex = "\"content\"\\s*:\\s*\"(.*?)(?<!\\\\)\"".toRegex()
+                    val match = regex.find(data)
+                    val content = match?.groupValues?.get(1)
+                    
+                    if (content != null) {
+                        val decoded = content.replace("\\n", "\n")
+                               .replace("\\\"", "\"")
+                               .replace("\\\\", "\\")
+                        sink.next(decoded)
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error parsing stream line: $line", e)
+                }
+            }
+            .doOnNext { logger.info("Extracted content: $it") }
     }
 }

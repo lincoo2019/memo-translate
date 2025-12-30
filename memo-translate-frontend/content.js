@@ -266,41 +266,82 @@ async function fetchAIAnalysis(text, container) {
         });
 
         const aiDiv = container.querySelector('.memo-ai-analysis');
-        if (!aiDiv) return;
+        if (!aiDiv || !res.ok) return;
 
-        if (res.ok) {
-            const data = await res.json();
-            aiDiv.innerHTML = `
-                <div class="memo-section-title" style="color:#d93025;">AI 语法解析</div>
-                <div class="memo-section" style="font-size:13px; color:#444;">${data.grammar}</div>
-                
-                <div class="memo-section-title" style="color:#188038;">关键短语</div>
-                <div class="memo-section">
-                    ${data.phrases.map(p => `<span class="memo-tag">${p}</span>`).join(' ')}
-                </div>
+        // Clear loading, set up structure
+        aiDiv.innerHTML = `
+            <div class="memo-section-title" style="color:#d93025;">AI 语法解析</div>
+            <div class="memo-ai-content memo-ai-grammar" style="font-size:13px; color:#444; margin-bottom:10px;"></div>
+            
+            <div class="memo-section-title" style="color:#188038;">关键短语</div>
+            <div class="memo-ai-content memo-ai-phrases" style="margin-bottom:10px;"></div>
 
-                <div class="memo-section-title" style="color:#f9ab00;">助记</div>
-                <div class="memo-section" style="font-style:italic;">${data.memoryTip}</div>
-            `;
-        } else {
-            aiDiv.innerHTML = `
-                <div style="color:red; font-size:12px; padding:5px; border:1px solid red;">
-                   后端返回错误 (${res.status})
-                </div>`;
+            <div class="memo-section-title" style="color:#f9ab00;">助记</div>
+            <div class="memo-ai-content memo-ai-tip" style="font-style:italic;"></div>
+        `;
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = "";
+        let buffer = ""; // Buffer for partial lines
+
+        const grammarEl = aiDiv.querySelector('.memo-ai-grammar');
+        const phrasesEl = aiDiv.querySelector('.memo-ai-phrases');
+        const tipEl = aiDiv.querySelector('.memo-ai-tip');
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop(); // Keep the last partial line in buffer
+
+            for (let line of lines) {
+                line = line.trim();
+                // Spring TEXT_EVENT_STREAM sends data: content
+                if (line.startsWith('data:')) {
+                    const content = line.substring(5).trim();
+                    if (content) {
+                        fullText += content;
+                        renderPartialAI(fullText, grammarEl, phrasesEl, tipEl);
+                    }
+                }
+            }
+        }
+        // Process remaining buffer
+        if (buffer.startsWith('data:')) {
+            fullText += buffer.substring(5).trim();
+            renderPartialAI(fullText, grammarEl, phrasesEl, tipEl);
         }
     } catch (e) {
-        // Fail silently or show error
         const aiDiv = container.querySelector('.memo-ai-analysis');
-        if (aiDiv) {
-            aiDiv.innerHTML = `
-                <div style="color:red; font-size:12px; padding:5px; border:1px solid red;">
-                    连接后端失败。<br>
-                    1. 确保 mvn spring-boot:run 正在backend目录允许<br>
-                    2. 检查 Console 报错 (F12)
-                </div>`;
-        }
-        console.error("Memo AI Analysis failed", e);
+        if (aiDiv) aiDiv.innerHTML = `<div style="color:red; font-size:11px;">AI 加载失败: ${e.message}</div>`;
+        console.error("Streaming failed", e);
     }
+}
+
+function renderPartialAI(text, grammarEl, phrasesEl, tipEl) {
+    // 简单的解析逻辑：提取两个标记之间内容
+    const getPart = (startMarker, nextMarker) => {
+        const startIdx = text.indexOf(startMarker);
+        if (startIdx === -1) return "";
+        const realStart = startIdx + startMarker.length;
+        const endIdx = nextMarker ? text.indexOf(nextMarker, realStart) : text.length;
+        return text.substring(realStart, endIdx === -1 ? text.length : endIdx).trim();
+    };
+
+    const grammar = getPart("[grammar]", "[phrases]");
+    const phrases = getPart("[phrases]", "[tip]");
+    const tip = getPart("[tip]", null);
+
+    if (grammar) grammarEl.textContent = grammar;
+    if (phrases) {
+        phrasesEl.innerHTML = phrases.split(/[,，]/)
+            .filter(p => p.trim())
+            .map(p => `<span class="memo-tag">${p.trim()}</span>`).join(' ');
+    }
+    if (tip) tipEl.textContent = tip;
 }
 
 // --- Highlighting Logic ---
