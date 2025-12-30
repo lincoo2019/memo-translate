@@ -194,6 +194,41 @@
             background: #f3f4f6;
             color: var(--memo-text);
         }
+
+        /* Review Mode Styling */
+        .word-item.review-mode .word-trans {
+            color: transparent;
+            text-shadow: 0 0 8px rgba(75, 85, 99, 0.8);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+        }
+
+        .word-item.review-mode:hover .word-trans {
+            color: #4b5563;
+            text-shadow: none;
+            user-select: text;
+        }
+
+        .word-item.review-mode::after {
+            content: 'Hover to reveal';
+            position: absolute;
+            right: 16px;
+            bottom: 12px;
+            font-size: 10px;
+            color: var(--memo-primary);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-style: italic;
+        }
+
+        .word-item.review-mode:not(:hover)::after {
+            opacity: 0.4;
+        }
+
+        .memo-is-sentence {
+            font-style: italic;
+            color: #4b5563;
+        }
     </style>
 </head>
 

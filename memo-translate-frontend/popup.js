@@ -6,19 +6,31 @@ let searchQuery = '';
 let isReviewMode = false;
 
 document.addEventListener('DOMContentLoaded', () => {
-    loadItems();
     setupTabs();
     setupSearchBar();
-    setupReviewMode();
+    // Load state first, then load items (which triggers render)
+    setupReviewMode(() => {
+        loadItems();
+    });
 
     document.getElementById('clear-all').addEventListener('click', handleClearAll);
     document.getElementById('export-csv').addEventListener('click', exportToAnki);
 });
 
-function setupReviewMode() {
+function setupReviewMode(callback) {
     const toggle = document.getElementById('review-toggle');
+
+    // Load persisted state
+    chrome.storage.local.get(['isReviewMode'], (result) => {
+        isReviewMode = result.isReviewMode || false;
+        toggle.checked = isReviewMode;
+        if (callback) callback();
+        else renderList();
+    });
+
     toggle.addEventListener('change', (e) => {
         isReviewMode = e.target.checked;
+        chrome.storage.local.set({ isReviewMode });
         renderList();
     });
 }
@@ -103,7 +115,7 @@ function renderList() {
                     <span class="action-icon delete" data-index="${index}" title="Remove">🗑️</span>
                 </div>
             </div>
-            <div class="word-trans" style="${currentTab === 'sentences' ? 'font-style: italic; color: #4b5563;' : ''}">${escapeHtml(item.translated)}</div>
+            <div class="word-trans ${currentTab === 'sentences' ? 'memo-is-sentence' : ''}">${escapeHtml(item.translated)}</div>
             <div class="word-info">
                 <span>${date}</span>
                 ${item.phonetic ? `
@@ -115,7 +127,7 @@ function renderList() {
 
         // Bind Actions
         li.querySelector('.play-audio').addEventListener('click', () => playAudio(item.original));
-        li.querySelector('.delete').addEventListener('click', () => removeItem(index));
+        li.querySelector('.delete').addEventListener('click', () => removeItem(item));
 
         // Add phonetic toggle
         const toggle = li.querySelector('.phonetic-toggle');
@@ -140,8 +152,11 @@ function playAudio(text) {
     window.speechSynthesis.speak(utterance);
 }
 
-function removeItem(index) {
-    allItems.splice(index, 1);
+function removeItem(itemToRemove) {
+    const mainIndex = allItems.findIndex(w => w.original === itemToRemove.original && w.timestamp === itemToRemove.timestamp);
+    if (mainIndex === -1) return;
+
+    allItems.splice(mainIndex, 1);
     const storageKey = currentTab === 'words' ? 'memoWords' : 'memoSentences';
     chrome.storage.local.set({ [storageKey]: allItems }, () => {
         updateCount();
