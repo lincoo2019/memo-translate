@@ -146,7 +146,10 @@ function showTranslation(text) {
                     <div class="memo-result-header">
                         <span class="memo-result-word">${data.translated}</span>
                         <span class="memo-play-audio" title="朗读" data-word="${data.original}">🔊</span>
-                        <span class="memo-result-phonetic">${data.phonetic ? `[${data.phonetic}]` : ''}</span>
+                        ${data.phonetic ? `
+                            <span class="memo-phonetic-toggle" style="cursor:pointer; font-size:12px; color:var(--memo-primary); opacity:0.7;">[音标/拼音]</span>
+                            <span class="memo-result-phonetic" style="display:none; font-size:12px; color:var(--memo-text-light);">[${data.phonetic}]</span>
+                        ` : ''}
                     </div>
                 `;
 
@@ -184,6 +187,17 @@ function showTranslation(text) {
             }
 
             contentDiv.innerHTML = html;
+
+            // Bind Phonetic Toggle
+            const pToggle = contentDiv.querySelector('.memo-phonetic-toggle');
+            if (pToggle) {
+                pToggle.onclick = () => {
+                    const pEl = contentDiv.querySelector('.memo-result-phonetic');
+                    const isHidden = pEl.style.display === 'none';
+                    pEl.style.display = isHidden ? 'inline' : 'none';
+                    pToggle.innerText = isHidden ? '[收起]' : '[音标/拼音]';
+                };
+            }
 
             // Bind Audio Click
             const audioBtn = contentDiv.querySelector('.memo-play-audio');
