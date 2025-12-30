@@ -74,6 +74,7 @@ Desktop.ini
 
 ### Logs ###
 *.log
+*.txt
 logs/
 
 ### Temporary files ###
