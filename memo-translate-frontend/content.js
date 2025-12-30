@@ -298,10 +298,10 @@ async function fetchAIAnalysis(text, container) {
             buffer = lines.pop(); // Keep the last partial line in buffer
 
             for (let line of lines) {
-                line = line.trim();
-                // Spring TEXT_EVENT_STREAM sends data: content
+                // 不要全局 trim()，因为 SSE 的数据行可能以空格开头/结尾（代表单词间距）
                 if (line.startsWith('data:')) {
-                    const content = line.substring(5).trim();
+                    // 只去掉 data: 前缀，保留后面的所有字符（包括空格）
+                    const content = line.substring(5);
                     if (content) {
                         fullText += content;
                         renderPartialAI(fullText, grammarEl, phrasesEl, tipEl);
