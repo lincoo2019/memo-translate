@@ -286,7 +286,31 @@
     transition: all 0.2s;
 }
 
-.memo-highlight:hover {
-    background-color: rgba(79, 70, 229, 0.2);
-    cursor: help;
+/* Review Mode Styles */
+.word-item.review-mode .word-trans {
+    filter: blur(5px);
+    user-select: none;
+    cursor: pointer;
+    background: #f1f5f9;
+    border-radius: 4px;
+    transition: filter 0.2s;
+}
+
+.word-item.review-mode .word-trans:hover {
+    filter: blur(0);
+    background: transparent;
+}
+
+.word-item.review-mode .word-trans::before {
+    content: "点击查看释义";
+    position: absolute;
+    font-size: 10px;
+    color: var(--memo-primary);
+    opacity: 0.8;
+    left: 16px;
+    pointer-events: none;
+}
+
+.word-item.review-mode .word-trans:hover::before {
+    display: none;
 }

@@ -3,15 +3,26 @@
 let currentTab = 'words';
 let allItems = []; // Current list data
 let searchQuery = '';
+let isReviewMode = false;
 
 document.addEventListener('DOMContentLoaded', () => {
     loadItems();
     setupTabs();
     setupSearchBar();
+    setupReviewMode();
 
     document.getElementById('clear-all').addEventListener('click', handleClearAll);
     document.getElementById('export-csv').addEventListener('click', exportToAnki);
 });
+
+function setupReviewMode() {
+    const toggle = document.getElementById('review-toggle');
+    toggle.addEventListener('change', (e) => {
+        isReviewMode = e.target.checked;
+        renderList();
+    });
+}
+
 
 function setupTabs() {
     document.getElementById('tab-words').addEventListener('click', () => switchTab('words'));
@@ -77,7 +88,7 @@ function renderList() {
 
     filtered.forEach((item, index) => {
         const li = document.createElement('li');
-        li.className = 'word-item';
+        li.className = `word-item ${isReviewMode ? 'review-mode' : ''}`;
 
         const date = new Date(item.timestamp).toLocaleDateString();
         // Remove truncation so sentences show in full
