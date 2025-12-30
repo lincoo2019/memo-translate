@@ -139,7 +139,7 @@ async function showTranslation(text) {
     popup.style.top = icon.style.top;
 
     const contentDiv = popup.querySelector('.memo-content');
-    contentDiv.innerHTML = '<div class="memo-loading">✨ 深度翻译中...</div>';
+    contentDiv.innerHTML = '<div class="memo-loading"><span class="memo-shimmer">正在获取释义...</span></div>';
 
     const saveBtn = popup.querySelector('#memo-save-btn');
     saveBtn.innerText = "添加到生词本";
@@ -206,10 +206,10 @@ function renderInitialPopup(container, data, isSentence) {
     }
     html += `
         <div class="memo-ai-analysis">
-            <div class="memo-ai-content memo-ai-loading">✨ AI 正在深度解析中...</div>
+            <div class="memo-ai-content memo-ai-loading"><span class="memo-shimmer">AI 正在解析语法细节...</span></div>
         </div>
         <div class="memo-ai-chat-container">
-            <div class="memo-section-title" style="color:var(--memo-text-light);">深度跟进 (Ask AI)</div>
+            <div class="memo-section-title" style="color:var(--memo-text-light);">AI 助手</div>
             <div class="memo-chat-history"></div>
         </div>
     `;

@@ -153,16 +153,56 @@
     font-size: 10px;
     font-weight: 800;
     color: var(--memo-primary);
-    margin: 16px 0 6px;
+    margin: 20px 0 8px;
     text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .memo-ai-analysis {
     background: #f5f3ff;
     border-radius: 10px;
     padding: 14px;
-    margin-top: 8px;
+    margin-top: 12px;
     border: 1px solid #ddd6fe;
+}
+
+/* Dictionary & Definitions Hierarchy */
+.memo-section {
+    margin: 8px 0;
+}
+
+.memo-dict-item {
+    margin-bottom: 8px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.memo-pos {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--memo-primary);
+    background: #eef2ff;
+    padding: 1px 6px;
+    border-radius: 4px;
+    text-transform: lowercase;
+    font-style: italic;
+    flex-shrink: 0;
+    border: 1px solid #e0e7ff;
+}
+
+.memo-def-group {
+    margin-top: 12px;
+    margin-bottom: 4px;
+}
+
+.memo-def-item {
+    font-size: 13px;
+    color: var(--memo-text);
+    margin-bottom: 4px;
+    padding-left: 4px;
 }
 
 .memo-ai-content {
@@ -258,10 +298,10 @@
 
 .memo-loading {
     text-align: center;
-    padding: 20px;
+    padding: 40px 20px;
     color: var(--memo-text-light);
-    font-size: 13px;
-    font-style: italic;
+    font-size: 12px;
+    letter-spacing: 0.02em;
 }
 
 .memo-shimmer {
