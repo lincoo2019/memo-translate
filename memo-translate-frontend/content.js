@@ -129,19 +129,15 @@ function showTranslation(text) {
 
             if (isSentence) {
                 console.log("Memo: Rendering Sentence UI & Triggering AI...");
-                // Sentence UI with AI Analysis Placeholder
                 html = `
                     <div class="memo-result-header">
                         <span class="memo-play-audio" title="朗读" data-word="${data.original}">🔊</span>
                         <span class="memo-result-sentence-trans">${data.translated}</span>
                     </div>
                     <div class="memo-ai-analysis">
-                        <div class="memo-ai-loading">✨ AI 正在深度解析语法...</div>
+                        <div class="memo-ai-content memo-ai-loading">✨ AI 正在努力解析语法中...</div>
                     </div>
                 `;
-
-                // Trigger AI Analysis
-                // We must confirm contentDiv is mounted? yes usually.
                 setTimeout(() => fetchAIAnalysis(data.original, contentDiv), 100);
 
             } else {

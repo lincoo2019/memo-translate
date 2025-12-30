@@ -1,235 +1,292 @@
-/* CSS for the injection UI */
+/* UI/UX Upgrade for Memo Translate */
+
+:root {
+    --memo-primary: #4f46e5;
+    --memo-primary-hover: #4338ca;
+    --memo-bg: #ffffff;
+    --memo-text: #1f2937;
+    --memo-text-light: #6b7280;
+    --memo-border: #e5e7eb;
+    --memo-radius: 12px;
+    --memo-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --memo-glass-bg: rgba(255, 255, 255, 0.95);
+}
+
 #memo-translate-icon {
     position: absolute;
-    width: 24px;
-    height: 24px;
-    background: #4285f4;
+    width: 32px;
+    height: 32px;
+    background: var(--memo-primary);
     color: white;
-    border-radius: 4px;
+    border-radius: 50%;
     cursor: pointer;
     z-index: 2147483647;
-    /* Max z-index */
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
-    font-family: sans-serif;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    font-size: 16px;
+    font-weight: bold;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     user-select: none;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation: memo-fade-in 0.2s ease-out;
+}
+
+#memo-translate-icon:hover {
+    transform: scale(1.1);
+    background: var(--memo-primary-hover);
 }
 
 #memo-translate-popup {
     position: absolute;
-    width: 300px;
-    background: white;
-    border: 1px solid #ccc;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    width: 340px;
+    background: var(--memo-glass-bg);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--memo-border);
+    box-shadow: var(--memo-shadow);
     z-index: 2147483647;
-    border-radius: 8px;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    border-radius: var(--memo-radius);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     font-size: 14px;
-    line-height: 1.5;
-    color: #333;
+    line-height: 1.6;
+    color: var(--memo-text);
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+    animation: memo-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes memo-fade-in {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes memo-slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .memo-header {
-    background: #f1f3f4;
-    padding: 8px 12px;
-    border-bottom: 1px solid #e0e0e0;
+    padding: 12px 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
+    border-bottom: 1px solid var(--memo-border);
 }
 
 .memo-title {
-    font-weight: bold;
-    color: #5f6368;
+    font-weight: 600;
+    color: var(--memo-text-light);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .memo-close {
     cursor: pointer;
-    font-size: 18px;
-    color: #888;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: background 0.2s;
+    color: var(--memo-text-light);
 }
 
 .memo-close:hover {
-    color: #333;
+    background: var(--memo-border);
+    color: var(--memo-text);
 }
 
 .memo-content {
-    padding: 12px;
-    max-height: 200px;
+    padding: 16px;
+    max-height: 350px;
     overflow-y: auto;
+}
+
+/* Custom Scrollbar */
+.memo-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.memo-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.memo-content::-webkit-scrollbar-thumb {
+    background: var(--memo-border);
+    border-radius: 10px;
 }
 
 .memo-result-header {
     display: flex;
-    align-items: baseline;
-    margin-bottom: 8px;
-    flex-wrap: wrap;
-}
-
-.memo-result-word {
-    font-size: 18px;
-    font-weight: bold;
-    color: #202124;
-    margin-right: 8px;
-}
-
-.memo-play-audio {
-    cursor: pointer;
-    margin-right: 8px;
-    font-size: 16px;
-    user-select: none;
-    transition: transform 0.1s;
-}
-
-.memo-play-audio:active {
-    transform: scale(0.9);
-}
-
-.memo-result-phonetic {
-    font-size: 13px;
-    color: #5f6368;
-    font-family: 'Lucida Sans Unicode', 'Arial Unicode MS', sans-serif;
-}
-
-.memo-section {
+    align-items: center;
+    gap: 8px;
     margin-bottom: 12px;
 }
 
+.memo-result-word {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--memo-text);
+}
+
+.memo-play-audio {
+    background: #f3f4f6;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.memo-play-audio:hover {
+    background: var(--memo-border);
+}
+
+.memo-result-phonetic {
+    font-family: monospace;
+    color: var(--memo-text-light);
+    font-size: 13px;
+}
+
 .memo-section-title {
-    font-size: 12px;
-    font-weight: bold;
-    color: #1a73e8;
-    margin-bottom: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--memo-primary);
+    margin: 16px 0 6px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.05em;
+}
+
+.memo-section-title:first-child {
+    margin-top: 0;
 }
 
 .memo-dict-item {
-    margin-bottom: 3px;
-    line-height: 1.4;
-    color: #333;
+    margin-bottom: 6px;
+    background: #f9fafb;
+    padding: 6px 10px;
+    border-radius: 8px;
 }
 
 .memo-pos {
-    font-weight: bold;
-    color: #1a73e8;
-    font-style: italic;
-    margin-right: 4px;
-    font-size: 12px;
+    font-weight: 600;
+    color: var(--memo-primary);
+    margin-right: 6px;
+    font-size: 11px;
 }
 
-.memo-def-group {
-    margin-top: 4px;
+.memo-ai-analysis {
+    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+    border-radius: 10px;
+    padding: 12px;
+    margin-top: 8px;
+    border: 1px solid #ddd6fe;
 }
 
-.memo-def-item {
-    padding-left: 8px;
-    margin-bottom: 2px;
-    color: #444;
+.memo-ai-content {
     font-size: 13px;
+    color: #4b5563;
 }
 
-.memo-examples {
-    font-style: italic;
-    color: #555;
+.memo-tag {
+    display: inline-block;
+    background: white;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    color: var(--memo-primary);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    margin: 2px;
+    border: 1px solid #ddd6fe;
 }
 
-.memo-ex-item {
-    margin-bottom: 2px;
-    padding-left: 8px;
-    font-size: 13px;
+/* Streaming Cursor */
+.memo-ai-content:not(:empty)::after {
+    content: '';
+    display: inline-block;
+    width: 2px;
+    height: 14px;
+    background: var(--memo-primary);
+    margin-left: 2px;
+    animation: memo-blink 0.8s infinite;
+    vertical-align: middle;
 }
 
-/* Highlight style for saved words on the page */
-.memo-highlight {
-    background-color: rgba(255, 235, 59, 0.4);
-    /* Light Yellow transparent */
-    border-bottom: 2px solid #fbc02d;
-    color: inherit;
-    border-radius: 2px;
-    cursor: help;
-    transition: background-color 0.2s;
-    position: relative;
-    /* For Pseudo-element positioning */
-}
+@keyframes memo-blink {
 
-.memo-highlight:hover {
-    background-color: rgba(255, 235, 59, 0.7);
-}
+    0%,
+    100% {
+        opacity: 1;
+    }
 
-/* Inline Translation Annotation (Ruby-like) */
-.memo-highlight::after {
-    content: attr(data-trans);
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #333;
-    color: #fff;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 10px;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s, bottom 0.2s;
-    z-index: 1000;
-    line-height: normal;
-}
-
-/* Show on hover */
-.memo-highlight:hover::after {
-    opacity: 1;
-    bottom: 110%;
-}
-
-/* Show ALL mode (triggered by body class) */
-body.memo-show-annotations .memo-highlight::after {
-    opacity: 1;
-    bottom: 110%;
-    /* Move up slightly */
-    background: #1a73e8;
-    /* Blue background to distinguish mode */
-}
-
-/* Sentence mode specific */
-.memo-result-sentence-trans {
-    font-size: 15px;
-    line-height: 1.4;
-    color: #202124;
+    50% {
+        opacity: 0;
+    }
 }
 
 .memo-footer {
-    padding: 8px 12px;
-    border-top: 1px solid #e0e0e0;
-    text-align: right;
-    background: #fff;
-    border-bottom-left-radius: 8px;
-    border-bottom-right-radius: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--memo-border);
+    background: #f9fafb;
 }
 
 #memo-save-btn {
-    background: #1a73e8;
+    width: 100%;
+    background: var(--memo-primary);
     color: white;
+    font-weight: 600;
     border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
+    padding: 8px 0;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 12px;
+    transition: all 0.2s;
 }
 
 #memo-save-btn:hover {
-    background: #1557b0;
+    background: var(--memo-primary-hover);
+    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+}
+
+#memo-save-btn:active {
+    transform: scale(0.98);
 }
 
 #memo-save-btn:disabled {
-    background: #ccc;
-    cursor: not-allowed;
+    background: #d1d5db;
+    color: #9ca3af;
+    cursor: default;
+}
+
+/* Page Highlights */
+.memo-highlight {
+    background-color: rgba(79, 70, 229, 0.1);
+    border-bottom: 2px solid var(--memo-primary);
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+    transition: all 0.2s;
+}
+
+.memo-highlight:hover {
+    background-color: rgba(79, 70, 229, 0.2);
+    cursor: help;
 }
