@@ -129,19 +129,15 @@ function showTranslation(text) {
 
             if (isSentence) {
                 console.log("Memo: Rendering Sentence UI & Triggering AI...");
-                // Sentence UI with AI Analysis Placeholder
                 html = `
                     <div class="memo-result-header">
                         <span class="memo-play-audio" title="朗读" data-word="${data.original}">🔊</span>
                         <span class="memo-result-sentence-trans">${data.translated}</span>
                     </div>
                     <div class="memo-ai-analysis">
-                        <div class="memo-ai-loading">✨ AI 正在深度解析语法...</div>
+                        <div class="memo-ai-content memo-ai-loading">✨ AI 正在努力解析语法中...</div>
                     </div>
                 `;
-
-                // Trigger AI Analysis
-                // We must confirm contentDiv is mounted? yes usually.
                 setTimeout(() => fetchAIAnalysis(data.original, contentDiv), 100);
 
             } else {
@@ -150,7 +146,10 @@ function showTranslation(text) {
                     <div class="memo-result-header">
                         <span class="memo-result-word">${data.translated}</span>
                         <span class="memo-play-audio" title="朗读" data-word="${data.original}">🔊</span>
-                        <span class="memo-result-phonetic">${data.phonetic ? `[${data.phonetic}]` : ''}</span>
+                        ${data.phonetic ? `
+                            <span class="memo-phonetic-toggle" style="cursor:pointer; font-size:12px; color:var(--memo-primary); opacity:0.7;">[音标/拼音]</span>
+                            <span class="memo-result-phonetic" style="display:none; font-size:12px; color:var(--memo-text-light);">[${data.phonetic}]</span>
+                        ` : ''}
                     </div>
                 `;
 
@@ -188,6 +187,17 @@ function showTranslation(text) {
             }
 
             contentDiv.innerHTML = html;
+
+            // Bind Phonetic Toggle
+            const pToggle = contentDiv.querySelector('.memo-phonetic-toggle');
+            if (pToggle) {
+                pToggle.onclick = () => {
+                    const pEl = contentDiv.querySelector('.memo-result-phonetic');
+                    const isHidden = pEl.style.display === 'none';
+                    pEl.style.display = isHidden ? 'inline' : 'none';
+                    pToggle.innerText = isHidden ? '[收起]' : '[音标/拼音]';
+                };
+            }
 
             // Bind Audio Click
             const audioBtn = contentDiv.querySelector('.memo-play-audio');
