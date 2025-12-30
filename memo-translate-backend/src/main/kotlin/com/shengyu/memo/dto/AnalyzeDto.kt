@@ -7,6 +7,11 @@ data class AnalyzeRequest(
     val text: String
 )
 
+data class ChatRequest(
+    val context: String,
+    val message: String
+)
+
 data class AnalyzeResponse(
     @JsonProperty("grammar")
     @JsonPropertyDescription("Detailed grammar analysis in Chinese")
