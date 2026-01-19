@@ -161,6 +161,17 @@ function removeItem(itemToRemove) {
     chrome.storage.local.set({ [storageKey]: allItems }, () => {
         updateCount();
         renderList();
+        
+        if (currentTab === 'words') {
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                if (tabs[0]) {
+                    chrome.tabs.sendMessage(tabs[0].id, {
+                        action: 'removeHighlight',
+                        word: itemToRemove.original
+                    });
+                }
+            });
+        }
     });
 }
 
@@ -172,6 +183,16 @@ function handleClearAll() {
             allItems = [];
             updateCount();
             renderList();
+            
+            if (currentTab === 'words') {
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    if (tabs[0]) {
+                        chrome.tabs.sendMessage(tabs[0].id, {
+                            action: 'clearAllHighlights'
+                        });
+                    }
+                });
+            }
         });
     }
 }

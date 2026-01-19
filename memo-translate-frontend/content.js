@@ -551,6 +551,46 @@ function setupTooltipEvents() {
     });
 }
 
+function removeWordHighlight(wordText) {
+    if (!wordText) return;
+    const cleanWord = wordText.trim();
+    const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(`(${escapeRegExp(cleanWord)})`, 'gi');
+    
+    const highlights = document.querySelectorAll('.memo-highlight');
+    highlights.forEach(highlight => {
+        if (highlight.dataset.word && highlight.dataset.word.toLowerCase() === cleanWord.toLowerCase()) {
+            const parent = highlight.parentNode;
+            const textNode = document.createTextNode(highlight.textContent);
+            parent.replaceChild(textNode, highlight);
+            
+            parent.normalize();
+        }
+    });
+}
+
+function clearAllHighlights() {
+    const highlights = document.querySelectorAll('.memo-highlight');
+    highlights.forEach(highlight => {
+        const parent = highlight.parentNode;
+        const textNode = document.createTextNode(highlight.textContent);
+        parent.replaceChild(textNode, highlight);
+        
+        parent.normalize();
+    });
+}
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'removeHighlight' && request.word) {
+        removeWordHighlight(request.word);
+        sendResponse({ success: true });
+    } else if (request.action === 'clearAllHighlights') {
+        clearAllHighlights();
+        sendResponse({ success: true });
+    }
+    return true;
+});
+
 initUI();
 loadAndHighlightAllWords();
 setupTooltipEvents();
