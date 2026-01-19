@@ -486,9 +486,71 @@ function highlightWordOnPage(wordText, translation) {
     nodesToReplace.forEach(node => {
         const span = document.createElement('span');
         const cleanTrans = translation ? translation.replace(/\[.*?\]/g, '').split(/[;,]/)[0].substring(0, 10) : '';
-        span.innerHTML = node.nodeValue.replace(pattern, `<span class="memo-highlight" data-trans="${cleanTrans}">$1</span>`);
+        span.innerHTML = node.nodeValue.replace(pattern, `<span class="memo-highlight" data-trans="${cleanTrans}" data-word="${cleanWord}">$1</span>`);
         node.parentNode?.replaceChild(span, node);
     });
 }
 
+function loadAndHighlightAllWords() {
+    chrome.storage.local.get(['memoWords'], (result) => {
+        const words = result.memoWords || [];
+        words.forEach(wordItem => {
+            highlightWordOnPage(wordItem.original, wordItem.translated);
+        });
+    });
+}
+
+function createTooltip() {
+    const tooltip = document.createElement('div');
+    tooltip.id = 'memo-tooltip';
+    tooltip.className = 'memo-tooltip';
+    tooltip.style.display = 'none';
+    document.body.appendChild(tooltip);
+    return tooltip;
+}
+
+function showTooltip(word, translation, x, y) {
+    let tooltip = document.getElementById('memo-tooltip');
+    if (!tooltip) {
+        tooltip = createTooltip();
+    }
+    
+    const cleanTrans = translation ? translation.replace(/\[.*?\]/g, '').split(/[;,]/)[0].trim() : '';
+    tooltip.innerHTML = `
+        <div class="memo-tooltip-word">${word}</div>
+        <div class="memo-tooltip-trans">${cleanTrans}</div>
+    `;
+    
+    tooltip.style.display = 'block';
+    tooltip.style.left = `${x + 10}px`;
+    tooltip.style.top = `${y + 10}px`;
+}
+
+function hideTooltip() {
+    const tooltip = document.getElementById('memo-tooltip');
+    if (tooltip) {
+        tooltip.style.display = 'none';
+    }
+}
+
+function setupTooltipEvents() {
+    document.addEventListener('mouseover', (e) => {
+        const target = e.target;
+        if (target.classList.contains('memo-highlight')) {
+            const word = target.dataset.word;
+            const trans = target.dataset.trans;
+            const rect = target.getBoundingClientRect();
+            showTooltip(word, trans, rect.right + window.pageXOffset, rect.bottom + window.pageYOffset);
+        }
+    });
+    
+    document.addEventListener('mouseout', (e) => {
+        if (e.target.classList.contains('memo-highlight')) {
+            hideTooltip();
+        }
+    });
+}
+
 initUI();
+loadAndHighlightAllWords();
+setupTooltipEvents();
