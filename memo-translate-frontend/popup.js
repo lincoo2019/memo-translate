@@ -8,19 +8,18 @@ let isReviewMode = false;
 document.addEventListener('DOMContentLoaded', () => {
     setupTabs();
     setupSearchBar();
-    // Load state first, then load items (which triggers render)
     setupReviewMode(() => {
         loadItems();
     });
 
     document.getElementById('clear-all').addEventListener('click', handleClearAll);
     document.getElementById('export-csv').addEventListener('click', exportToAnki);
+    document.getElementById('generate-qr').addEventListener('click', generateQRCode);
 });
 
 function setupReviewMode(callback) {
     const toggle = document.getElementById('review-toggle');
 
-    // Load persisted state
     chrome.storage.local.get(['isReviewMode'], (result) => {
         isReviewMode = result.isReviewMode || false;
         toggle.checked = isReviewMode;
@@ -34,7 +33,6 @@ function setupReviewMode(callback) {
         renderList();
     });
 }
-
 
 function setupTabs() {
     document.getElementById('tab-words').addEventListener('click', () => switchTab('words'));
@@ -55,7 +53,6 @@ function switchTab(tab) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.getElementById(`tab-${tab}`).classList.add('active');
 
-    // Clear search when switching tabs
     document.getElementById('search-bar').value = '';
     searchQuery = '';
 
@@ -103,7 +100,6 @@ function renderList() {
         li.className = `word-item ${isReviewMode ? 'review-mode' : ''}`;
 
         const date = new Date(item.timestamp).toLocaleDateString();
-        // Remove truncation so sentences show in full
         const displayOriginal = item.original;
 
         li.innerHTML = `
@@ -125,11 +121,9 @@ function renderList() {
             </div>
         `;
 
-        // Bind Actions
         li.querySelector('.play-audio').addEventListener('click', () => playAudio(item.original));
         li.querySelector('.delete').addEventListener('click', () => removeItem(item));
 
-        // Add phonetic toggle
         const toggle = li.querySelector('.phonetic-toggle');
         if (toggle) {
             toggle.addEventListener('click', (e) => {
@@ -197,7 +191,6 @@ function handleClearAll() {
     }
 }
 
-// Reuse exportToAnki from original logic
 function exportToAnki() {
     if (allItems.length === 0) {
         alert('Empty list!');
@@ -205,7 +198,6 @@ function exportToAnki() {
     }
 
     let csvContent = "# separator:Tab\n# html:true\nFront\tBack\n";
-    // ... logic remains same as old popup.js ...
     allItems.forEach(w => {
         let front = `<strong>${w.original}</strong>`;
         if (currentTab === 'words' && w.phonetic) front += ` <span style="color:#666;">[${w.phonetic}]</span>`;
@@ -228,4 +220,149 @@ function exportToAnki() {
 function escapeHtml(text) {
     if (!text) return text;
     return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+function generateQRCode() {
+    if (allItems.length === 0) {
+        alert('单词列表为空，无法生成二维码！');
+        return;
+    }
+
+    const vocabularyData = {
+        version: '1.0',
+        timestamp: Date.now(),
+        count: allItems.length,
+        words: allItems.map(item => ({
+            word: item.original,
+            meaning: item.translated,
+            phonetic: item.phonetic || ''
+        }))
+    };
+
+    const jsonData = JSON.stringify(vocabularyData);
+    const encodedData = 'word://v1/' + btoa(unescape(encodeURIComponent(jsonData)));
+    
+    const maxQRSize = 1800;
+    const chunks = [];
+    for (let i = 0; i < encodedData.length; i += maxQRSize) {
+        chunks.push(encodedData.slice(i, i + maxQRSize));
+    }
+
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    `;
+
+    const content = document.createElement('div');
+    content.style.cssText = `
+        background: white;
+        padding: 24px;
+        border-radius: 12px;
+        text-align: center;
+        max-width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    `;
+
+    const title = document.createElement('h3');
+    title.textContent = '单词表二维码';
+    title.style.cssText = 'margin: 0 0 16px 0; color: #333;';
+
+    const info = document.createElement('p');
+    info.textContent = `共 ${allItems.length} 个单词，分为 ${chunks.length} 个二维码`;
+    info.style.cssText = 'margin: 12px 0; color: #666; font-size: 14px;';
+
+    const qrContainer = document.createElement('div');
+    qrContainer.style.cssText = 'display: flex; flex-direction: column; gap: 20px; align-items: center;';
+
+    const hint = document.createElement('p');
+    hint.textContent = '按顺序扫描所有二维码，使用配配单词App导入单词';
+    hint.style.cssText = 'margin: 8px 0 16px 0; color: #999; font-size: 12px;';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '关闭';
+    closeBtn.style.cssText = `
+        background: #6366f1;
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        margin-top: 8px;
+    `;
+    closeBtn.onclick = () => {
+        document.body.removeChild(modal);
+    };
+
+    content.appendChild(title);
+    content.appendChild(info);
+    content.appendChild(qrContainer);
+    content.appendChild(hint);
+    content.appendChild(closeBtn);
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+
+    let currentChunk = 0;
+    const generateNextQR = () => {
+        if (currentChunk >= chunks.length) {
+            return;
+        }
+
+        const chunkWrapper = document.createElement('div');
+        chunkWrapper.style.cssText = 'display: flex; flex-direction: column; align-items: center; gap: 8px;';
+
+        const chunkLabel = document.createElement('div');
+        chunkLabel.textContent = `二维码 ${currentChunk + 1}/${chunks.length}`;
+        chunkLabel.style.cssText = 'font-size: 12px; color: #666; font-weight: 600;';
+
+        const qrDiv = document.createElement('div');
+        qrDiv.style.cssText = 'display: flex; justify-content: center; align-items: center; padding: 16px; background: #f9fafb; border-radius: 8px;';
+
+        chunkWrapper.appendChild(chunkLabel);
+        chunkWrapper.appendChild(qrDiv);
+        qrContainer.appendChild(chunkWrapper);
+
+        const chunkData = `word://v1/${currentChunk + 1}/${chunks.length}/${chunks[currentChunk]}`;
+        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(chunkData)}`;
+
+        const img = document.createElement('img');
+        img.src = qrApiUrl;
+        img.alt = 'QR Code';
+        img.style.cssText = 'max-width: 256px; height: auto; border: 1px solid #ddd; border-radius: 4px;';
+        img.crossOrigin = 'anonymous';
+        
+        img.onload = () => {
+            console.log('QR code loaded successfully:', currentChunk + 1);
+            currentChunk++;
+            generateNextQR();
+        };
+        
+        img.onerror = (e) => {
+            console.error('Failed to load QR code:', e);
+            qrDiv.innerHTML = '<p style="color: #ef4444; font-size: 12px; padding: 8px;">二维码生成失败，请重试</p>';
+            currentChunk++;
+            generateNextQR();
+        };
+
+        qrDiv.appendChild(img);
+    };
+
+    generateNextQR();
+
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    };
 }
