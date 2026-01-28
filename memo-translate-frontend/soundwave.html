@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>声波同步</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 500px;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 24px;
+        }
+        
+        .mode-selector {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .mode-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #6b7280;
+            transition: all 0.3s;
+        }
+        
+        .mode-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+        
+        .mode-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: white;
+        }
+        
+        .status {
+            background: #f3f4f6;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .status-text {
+            font-size: 14px;
+            color: #4b5563;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .progress-info {
+            text-align: center;
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 8px;
+        }
+        
+        .action-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 12px;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .action-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .back-btn {
+            width: 100%;
+            padding: 12px;
+            background: #f3f4f6;
+            color: #6b7280;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .back-btn:hover {
+            background: #e5e7eb;
+        }
+        
+        .log {
+            background: #1f2937;
+            color: #10b981;
+            padding: 16px;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        
+        .log-entry {
+            margin-bottom: 4px;
+        }
+        
+        .log-entry.error {
+            color: #ef4444;
+        }
+        
+        .log-entry.success {
+            color: #10b981;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌊 声波同步</h1>
+            <p>通过声波传输单词数据</p>
+        </div>
+        
+        <div class="content">
+            <div class="mode-selector">
+                <button class="mode-btn active" id="sendMode">发送模式</button>
+                <button class="mode-btn" id="receiveMode">接收模式</button>
+            </div>
+            
+            <div class="status">
+                <div class="status-text" id="statusText">准备就绪</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-info" id="progressInfo"></div>
+            </div>
+            
+            <button class="action-btn" id="actionBtn">开始发送</button>
+            <button class="back-btn" id="backBtn">返回</button>
+            
+            <div class="log" id="log"></div>
+        </div>
+    </div>
+
+    <script src="ggwave.js"></script>
+    <script>
+        let ggwave = null;
+        let ggwaveInstance = null;
+        let ggwaveReady = false;
+        let audioContext = null;
+        let analyser = null;
+        let microphoneStream = null;
+        let currentMode = 'send';
+        let isProcessing = false;
+
+        const statusText = document.getElementById('statusText');
+        const progressFill = document.getElementById('progressFill');
+        const progressInfo = document.getElementById('progressInfo');
+        const actionBtn = document.getElementById('actionBtn');
+        const backBtn = document.getElementById('backBtn');
+        const log = document.getElementById('log');
+
+        function addLog(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const time = new Date().toLocaleTimeString();
+            entry.textContent = `[${time}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+            console.log(message);
+        }
+
+        function updateStatus(text, progress = 0, info = '') {
+            statusText.textContent = text;
+            progressFill.style.width = `${progress}%`;
+            progressInfo.textContent = info;
+        }
+
+        function switchMode(mode) {
+            currentMode = mode;
+            document.getElementById('sendMode').classList.toggle('active', mode === 'send');
+            document.getElementById('receiveMode').classList.toggle('active', mode === 'receive');
+            actionBtn.textContent = mode === 'send' ? '开始发送' : '开始接收';
+            updateStatus('准备就绪', 0, '');
+        }
+
+        async function loadGGWave() {
+            try {
+                addLog('正在加载 ggwave 库...');
+                
+                const ggwaveFactory = await import('./ggwave.js');
+                ggwave = await ggwaveFactory.default();
+                
+                addLog('ggwave 库加载成功', 'success');
+                
+                const parameters = ggwave.getDefaultParameters();
+                parameters.operatingMode |= ggwave.GGWAVE_OPERATING_MODE_RX_AND_TX;
+                parameters.operatingMode |= ggwave.GGWAVE_OPERATING_MODE_USE_DSS;
+                
+                ggwaveInstance = ggwave.init(parameters);
+                addLog('ggwave 实例创建成功', 'success');
+                
+                ggwaveReady = true;
+                addLog('系统就绪，可以开始同步', 'success');
+                
+            } catch (error) {
+                addLog('加载 ggwave 库失败: ' + error.message, 'error');
+            }
+        }
+
+        async function sendData(data) {
+            if (!ggwaveReady) {
+                throw new Error('ggwave 未就绪');
+            }
+
+            try {
+                addLog('准备发送数据...');
+                
+                const waveform = ggwave.encode(ggwaveInstance, data, ggwave.ProtocolId.GGWAVE_PROTOCOL_AUDIBLE_FAST, 25);
+                addLog(`声波数据生成成功，长度: ${waveform.length}`);
+                
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
+                }
+                
+                const audioBuffer = audioContext.createBuffer(1, waveform.length, 48000);
+                const channelData = audioBuffer.getChannelData(0);
+                
+                for (let i = 0; i < waveform.length; i++) {
+                    channelData[i] = waveform[i] / 255.0;
+                }
+                
+                const source = audioContext.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(audioContext.destination);
+                source.start();
+                
+                addLog('声波数据播放完成', 'success');
+                return 'success';
+                
+            } catch (error) {
+                addLog('发送数据失败: ' + error.message, 'error');
+                throw error;
+            }
+        }
+
+        async function receiveData(timeout = 30000) {
+            if (!ggwaveReady) {
+                throw new Error('ggwave 未就绪');
+            }
+
+            try {
+                addLog('开始接收数据...');
+                
+                if (!microphoneStream) {
+                    addLog('请求麦克风权限...');
+                    microphoneStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    addLog('麦克风权限获取成功', 'success');
+                }
+                
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
+                }
+                
+                if (!analyser) {
+                    const source = audioContext.createMediaStreamSource(microphoneStream);
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 2048;
+                    source.connect(analyser);
+                    addLog('音频分析器初始化成功', 'success');
+                }
+                
+                const startTime = Date.now();
+                let noDataCount = 0;
+                const maxNoDataCount = 30;
+                
+                while (Date.now() - startTime < timeout && noDataCount < maxNoDataCount) {
+                    const bufferLength = analyser.frequencyBinCount;
+                    const dataArray = new Uint8Array(bufferLength);
+                    analyser.getByteTimeDomainData(dataArray);
+                    
+                    const waveform = new Int8Array(bufferLength);
+                    for (let i = 0; i < bufferLength; i++) {
+                        waveform[i] = dataArray[i] - 128;
+                    }
+                    
+                    const payloadBuffer = new Uint8Array(256);
+                    const decodedLength = ggwave.decode(ggwaveInstance, waveform, payloadBuffer);
+                    
+                    if (decodedLength > 0) {
+                        const payload = new TextDecoder('utf-8').decode(payloadBuffer.slice(0, decodedLength));
+                        addLog('接收到数据', 'success');
+                        noDataCount = 0;
+                        return payload;
+                    } else {
+                        noDataCount++;
+                    }
+                    
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                
+                addLog('接收超时，未检测到有效数据', 'error');
+                return 'timeout';
+                
+            } catch (error) {
+                addLog('接收数据失败: ' + error.message, 'error');
+                throw error;
+            }
+        }
+
+        async function handleSend() {
+            if (isProcessing) return;
+            
+            isProcessing = true;
+            actionBtn.disabled = true;
+            backBtn.disabled = true;
+            
+            try {
+                const storageKey = 'memoWords';
+                const result = await new Promise((resolve) => {
+                    chrome.storage.local.get([storageKey], resolve);
+                });
+                
+                const items = result[storageKey] || [];
+                
+                if (items.length === 0) {
+                    addLog('没有可发送的数据', 'error');
+                    updateStatus('没有数据', 0, '');
+                    return;
+                }
+                
+                const data = {
+                    type: 'vocabulary',
+                    version: '1.0',
+                    items: items
+                };
+                
+                const jsonData = JSON.stringify(data);
+                addLog(`数据大小: ${jsonData.length} 字节`);
+                
+                const maxChunkSize = 100;
+                const chunks = [];
+                
+                for (let i = 0; i < jsonData.length; i += maxChunkSize) {
+                    const chunk = jsonData.substring(i, i + maxChunkSize);
+                    chunks.push({
+                        type: 'chunk',
+                        index: chunks.length,
+                        total: Math.ceil(jsonData.length / maxChunkSize),
+                        content: chunk
+                    });
+                }
+                
+                addLog(`准备发送 ${chunks.length} 个数据块`);
+                
+                for (let i = 0; i < chunks.length; i++) {
+                    updateStatus(`正在发送数据块 ${i + 1}/${chunks.length}`, 
+                                 ((i + 1) / chunks.length) * 100, 
+                                 `${i + 1}/${chunks.length}`);
+                    
+                    const chunkData = JSON.stringify(chunks[i]);
+                    await sendData(chunkData);
+                    
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                
+                updateStatus('发送完成', 100, '');
+                addLog('所有数据发送完成', 'success');
+                
+            } catch (error) {
+                addLog('发送失败: ' + error.message, 'error');
+                updateStatus('发送失败', 0, '');
+            } finally {
+                isProcessing = false;
+                actionBtn.disabled = false;
+                backBtn.disabled = false;
+            }
+        }
+
+        async function handleReceive() {
+            if (isProcessing) return;
+            
+            isProcessing = true;
+            actionBtn.disabled = true;
+            backBtn.disabled = true;
+            
+            try {
+                const receivedChunks = new Map();
+                let totalChunks = 0;
+                
+                updateStatus('正在监听声波...', 0, '');
+                
+                while (true) {
+                    const payload = await receiveData();
+                    
+                    if (payload === 'timeout' || payload === 'error') {
+                        break;
+                    }
+                    
+                    try {
+                        const chunk = JSON.parse(payload);
+                        
+                        if (chunk.type === 'chunk') {
+                            receivedChunks.set(chunk.index, chunk.content);
+                            totalChunks = chunk.total;
+                            
+                            updateStatus(`已接收 ${receivedChunks.size}/${totalChunks} 个数据块`,
+                                         (receivedChunks.size / totalChunks) * 100,
+                                         `${receivedChunks.size}/${totalChunks}`);
+                            
+                            if (receivedChunks.size === totalChunks) {
+                                break;
+                            }
+                        }
+                    } catch (parseError) {
+                        addLog('解析数据块失败: ' + parseError.message, 'error');
+                    }
+                }
+                
+                if (receivedChunks.size === totalChunks && totalChunks > 0) {
+                    let jsonData = '';
+                    for (let i = 0; i < totalChunks; i++) {
+                        jsonData += receivedChunks.get(i);
+                    }
+                    
+                    const data = JSON.parse(jsonData);
+                    
+                    if (data.type === 'vocabulary' && data.version === '1.0') {
+                        addLog(`成功接收 ${data.items.length} 个单词`, 'success');
+                        
+                        const storageKey = 'memoWords';
+                        const existingResult = await new Promise((resolve) => {
+                            chrome.storage.local.get([storageKey], resolve);
+                        });
+                        
+                        const existingItems = existingResult[storageKey] || [];
+                        const existingMap = new Map(existingItems.map(item => [item.original, item]));
+                        
+                        let addedCount = 0;
+                        for (const item of data.items) {
+                            if (!existingMap.has(item.original)) {
+                                existingItems.push(item);
+                                addedCount++;
+                            }
+                        }
+                        
+                        await new Promise((resolve) => {
+                            chrome.storage.local.set({ [storageKey]: existingItems }, resolve);
+                        });
+                        
+                        addLog(`已添加 ${addedCount} 个新单词到词库`, 'success');
+                        updateStatus('接收完成', 100, `添加 ${addedCount} 个新单词`);
+                    }
+                } else {
+                    addLog('接收不完整，请重试', 'error');
+                    updateStatus('接收不完整', 0, '');
+                }
+                
+            } catch (error) {
+                addLog('接收失败: ' + error.message, 'error');
+                updateStatus('接收失败', 0, '');
+            } finally {
+                isProcessing = false;
+                actionBtn.disabled = false;
+                backBtn.disabled = false;
+            }
+        }
+
+        document.getElementById('sendMode').addEventListener('click', () => switchMode('send'));
+        document.getElementById('receiveMode').addEventListener('click', () => switchMode('receive'));
+        
+        actionBtn.addEventListener('click', () => {
+            if (currentMode === 'send') {
+                handleSend();
+            } else {
+                handleReceive();
+            }
+        });
+        
+        backBtn.addEventListener('click', () => {
+            window.close();
+        });
+
+        window.addEventListener('load', loadGGWave);
+    </script>
+</body>
+</html>

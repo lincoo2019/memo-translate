@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('clear-all').addEventListener('click', handleClearAll);
     document.getElementById('export-csv').addEventListener('click', exportToAnki);
     document.getElementById('generate-qr').addEventListener('click', generateQRCode);
+    document.getElementById('soundwave-sync').addEventListener('click', openSoundWaveSync);
 });
 
 function setupReviewMode(callback) {
@@ -240,12 +241,13 @@ function generateQRCode() {
     };
 
     const jsonData = JSON.stringify(vocabularyData);
-    const encodedData = 'word://v1/' + btoa(unescape(encodeURIComponent(jsonData)));
+    
+    let base64Data = btoa(unescape(encodeURIComponent(jsonData)));
     
     const maxQRSize = 1800;
     const chunks = [];
-    for (let i = 0; i < encodedData.length; i += maxQRSize) {
-        chunks.push(encodedData.slice(i, i + maxQRSize));
+    for (let i = 0; i < base64Data.length; i += maxQRSize) {
+        chunks.push(base64Data.slice(i, i + maxQRSize));
     }
 
     const modal = document.createElement('div');
@@ -334,6 +336,8 @@ function generateQRCode() {
         qrContainer.appendChild(chunkWrapper);
 
         const chunkData = `word://v1/${currentChunk + 1}/${chunks.length}/${chunks[currentChunk]}`;
+        console.log('Generating QR code for chunk:', currentChunk + 1, 'data length:', chunkData.length);
+        console.log('Chunk data preview:', chunkData.substring(0, 100));
         const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(chunkData)}`;
 
         const img = document.createElement('img');
@@ -365,4 +369,8 @@ function generateQRCode() {
             document.body.removeChild(modal);
         }
     };
+}
+
+function openSoundWaveSync() {
+    chrome.tabs.create({ url: chrome.runtime.getURL('soundwave.html') });
 }
