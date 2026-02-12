@@ -158,6 +158,26 @@
             color: var(--memo-text-light);
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .word-url {
+            font-size: 10px;
+            color: var(--memo-primary);
+            background: #f5f3ff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .word-url:hover {
+            background: #ede9fe;
         }
 
         .empty-state {

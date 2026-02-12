@@ -115,6 +115,7 @@ function renderList() {
             <div class="word-trans ${currentTab === 'sentences' ? 'memo-is-sentence' : ''}">${escapeHtml(item.translated)}</div>
             <div class="word-info">
                 <span>${date}</span>
+                ${item.url ? `<span class="word-url" title="${escapeHtml(item.url)}">${escapeHtml(getDomain(item.url))}</span>` : ''}
                 ${item.phonetic ? `
                     <span class="phonetic-toggle" style="cursor:pointer; color:var(--memo-primary); opacity:0.8; margin-left:8px;">[音标/拼音]</span>
                     <span class="word-phonetic" style="display:none; opacity:0.7; margin-left:4px;">[${item.phonetic}]</span>
@@ -230,6 +231,16 @@ function exportToAnki() {
 function escapeHtml(text) {
     if (!text) return text;
     return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+function getDomain(url) {
+    if (!url) return '';
+    try {
+        const urlObj = new URL(url);
+        return urlObj.hostname;
+    } catch (e) {
+        return url;
+    }
 }
 
 function generateQRCode() {
