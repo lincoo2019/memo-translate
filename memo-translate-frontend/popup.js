@@ -157,16 +157,21 @@ function removeItem(itemToRemove) {
         updateCount();
         renderList();
         
-        if (currentTab === 'words') {
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                if (tabs[0]) {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs[0]) {
+                if (currentTab === 'words') {
                     chrome.tabs.sendMessage(tabs[0].id, {
                         action: 'removeHighlight',
                         word: itemToRemove.original
                     });
+                } else {
+                    chrome.tabs.sendMessage(tabs[0].id, {
+                        action: 'removeSentenceHighlight',
+                        sentence: itemToRemove.original
+                    });
                 }
-            });
-        }
+            }
+        });
     });
 }
 
@@ -179,15 +184,19 @@ function handleClearAll() {
             updateCount();
             renderList();
             
-            if (currentTab === 'words') {
-                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                    if (tabs[0]) {
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                if (tabs[0]) {
+                    if (currentTab === 'words') {
+                        chrome.tabs.sendMessage(tabs[0].id, {
+                            action: 'clearAllHighlights'
+                        });
+                    } else {
                         chrome.tabs.sendMessage(tabs[0].id, {
                             action: 'clearAllHighlights'
                         });
                     }
-                });
-            }
+                }
+            });
         });
     }
 }

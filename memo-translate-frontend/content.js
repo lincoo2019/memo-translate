@@ -322,7 +322,13 @@ function bindCommonActions(container, data, isSentence) {
     saveBtn.disabled = false;
     saveBtn.onclick = () => {
         saveWord(data);
-        if (!isSentence) highlightWordOnPage(data.original, data.translated);
+        if (isSentence) {
+            if (isChineseSentence(data.original)) {
+                highlightSentenceOnPage(data.original, data.translated);
+            }
+        } else {
+            highlightWordOnPage(data.original, data.translated);
+        }
         saveBtn.innerText = "已保存";
         saveBtn.disabled = true;
     };
@@ -445,6 +451,14 @@ function playAudio(text) {
     window.speechSynthesis.speak(utterance);
 }
 
+function isChineseSentence(text) {
+    if (!text || text.length < 2) return false;
+    const chineseCharCount = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
+    const totalLength = text.length;
+    const chineseRatio = chineseCharCount / totalLength;
+    return chineseRatio > 0.3 && chineseCharCount >= 2;
+}
+
 function saveWord(data) {
     const item = {
         original: data.original,
@@ -474,7 +488,7 @@ function highlightWordOnPage(wordText, translation) {
         acceptNode: (node) => {
             const parent = node.parentNode;
             if (!parent || ['script', 'style', 'textarea', 'input', 'select', 'noscript'].includes(parent.tagName.toLowerCase())) return NodeFilter.FILTER_REJECT;
-            if (parent.isContentEditable || parent.classList.contains('memo-highlight') || (parent.id && parent.id.startsWith('memo-translate'))) return NodeFilter.FILTER_REJECT;
+            if (parent.isContentEditable || parent.classList.contains('memo-highlight') || parent.classList.contains('memo-highlight-sentence') || (parent.id && parent.id.startsWith('memo-translate'))) return NodeFilter.FILTER_REJECT;
             return NodeFilter.FILTER_ACCEPT;
         }
     });
@@ -491,11 +505,45 @@ function highlightWordOnPage(wordText, translation) {
     });
 }
 
+function highlightSentenceOnPage(sentenceText, translation) {
+    if (!sentenceText || sentenceText.length < 2) return;
+    const cleanSentence = sentenceText.trim();
+    const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(`(${escapeRegExp(cleanSentence)})`, 'g');
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+        acceptNode: (node) => {
+            const parent = node.parentNode;
+            if (!parent || ['script', 'style', 'textarea', 'input', 'select', 'noscript'].includes(parent.tagName.toLowerCase())) return NodeFilter.FILTER_REJECT;
+            if (parent.isContentEditable || parent.classList.contains('memo-highlight') || parent.classList.contains('memo-highlight-sentence') || (parent.id && parent.id.startsWith('memo-translate'))) return NodeFilter.FILTER_REJECT;
+            return NodeFilter.FILTER_ACCEPT;
+        }
+    });
+    const nodesToReplace = [];
+    let currentNode;
+    while (currentNode = walker.nextNode()) {
+        if (pattern.test(currentNode.nodeValue)) nodesToReplace.push(currentNode);
+    }
+    nodesToReplace.forEach(node => {
+        const span = document.createElement('span');
+        const cleanTrans = translation ? translation.substring(0, 30) : '';
+        span.innerHTML = node.nodeValue.replace(pattern, `<span class="memo-highlight-sentence" data-trans="${cleanTrans}" data-sentence="${cleanSentence}">$1</span>`);
+        node.parentNode?.replaceChild(span, node);
+    });
+}
+
 function loadAndHighlightAllWords() {
     chrome.storage.local.get(['memoWords'], (result) => {
         const words = result.memoWords || [];
         words.forEach(wordItem => {
             highlightWordOnPage(wordItem.original, wordItem.translated);
+        });
+    });
+    chrome.storage.local.get(['memoSentences'], (result) => {
+        const sentences = result.memoSentences || [];
+        sentences.forEach(sentenceItem => {
+            if (isChineseSentence(sentenceItem.original)) {
+                highlightSentenceOnPage(sentenceItem.original, sentenceItem.translated);
+            }
         });
     });
 }
@@ -541,11 +589,16 @@ function setupTooltipEvents() {
             const trans = target.dataset.trans;
             const rect = target.getBoundingClientRect();
             showTooltip(word, trans, rect.right + window.pageXOffset, rect.bottom + window.pageYOffset);
+        } else if (target.classList.contains('memo-highlight-sentence')) {
+            const sentence = target.dataset.sentence;
+            const trans = target.dataset.trans;
+            const rect = target.getBoundingClientRect();
+            showTooltip(sentence, trans, rect.right + window.pageXOffset, rect.bottom + window.pageYOffset);
         }
     });
     
     document.addEventListener('mouseout', (e) => {
-        if (e.target.classList.contains('memo-highlight')) {
+        if (e.target.classList.contains('memo-highlight') || e.target.classList.contains('memo-highlight-sentence')) {
             hideTooltip();
         }
     });
@@ -569,9 +622,34 @@ function removeWordHighlight(wordText) {
     });
 }
 
+function removeSentenceHighlight(sentenceText) {
+    if (!sentenceText) return;
+    const cleanSentence = sentenceText.trim();
+    
+    const highlights = document.querySelectorAll('.memo-highlight-sentence');
+    highlights.forEach(highlight => {
+        if (highlight.dataset.sentence && highlight.dataset.sentence === cleanSentence) {
+            const parent = highlight.parentNode;
+            const textNode = document.createTextNode(highlight.textContent);
+            parent.replaceChild(textNode, highlight);
+            
+            parent.normalize();
+        }
+    });
+}
+
 function clearAllHighlights() {
     const highlights = document.querySelectorAll('.memo-highlight');
     highlights.forEach(highlight => {
+        const parent = highlight.parentNode;
+        const textNode = document.createTextNode(highlight.textContent);
+        parent.replaceChild(textNode, highlight);
+        
+        parent.normalize();
+    });
+    
+    const sentenceHighlights = document.querySelectorAll('.memo-highlight-sentence');
+    sentenceHighlights.forEach(highlight => {
         const parent = highlight.parentNode;
         const textNode = document.createTextNode(highlight.textContent);
         parent.replaceChild(textNode, highlight);
@@ -583,6 +661,9 @@ function clearAllHighlights() {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'removeHighlight' && request.word) {
         removeWordHighlight(request.word);
+        sendResponse({ success: true });
+    } else if (request.action === 'removeSentenceHighlight' && request.sentence) {
+        removeSentenceHighlight(request.sentence);
         sendResponse({ success: true });
     } else if (request.action === 'clearAllHighlights') {
         clearAllHighlights();

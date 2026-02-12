@@ -512,6 +512,22 @@
     box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
 }
 
+.memo-highlight-sentence {
+    background: linear-gradient(120deg, #dbeafe 0%, #bfdbfe 100%);
+    border-radius: 4px;
+    padding: 1px 4px;
+    cursor: help;
+    transition: all 0.2s ease;
+    border-left: 3px solid #3b82f6;
+    border-right: 3px solid #3b82f6;
+}
+
+.memo-highlight-sentence:hover {
+    background: linear-gradient(120deg, #bfdbfe 0%, #93c5fd 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 12px rgba(59, 130, 246, 0.3);
+}
+
 .memo-tooltip {
     position: absolute;
     z-index: 2147483647;
