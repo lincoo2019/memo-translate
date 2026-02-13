@@ -226,6 +226,37 @@ async function showTranslation(text) {
     }
 
     const contentDiv = popup.querySelector('.memo-content');
+    const isChinese = isChineseSentence(text);
+    
+    if (isChinese) {
+        contentDiv.innerHTML = `
+            <div class="memo-loading">
+                <span class="memo-shimmer">中文句子无需翻译</span>
+            </div>
+            <div class="memo-chinese-sentence-actions">
+                <div class="memo-original-text">${escapeHtml(text)}</div>
+                <button id="memo-highlight-btn" class="memo-highlight-btn">📌 高亮并收藏句子</button>
+            </div>
+        `;
+        
+        const highlightBtn = contentDiv.querySelector('#memo-highlight-btn');
+        highlightBtn.addEventListener('click', () => {
+            const data = {
+                original: text,
+                translated: '中文句子',
+                isSentence: true
+            };
+            saveWord(data);
+            highlightSentenceOnPage(text, '中文句子');
+            highlightBtn.textContent = '✓ 已高亮并收藏';
+            highlightBtn.disabled = true;
+        });
+        
+        const actionArea = popup.querySelector('.memo-action-area');
+        actionArea.style.display = 'none';
+        return;
+    }
+    
     contentDiv.innerHTML = '<div class="memo-loading"><span class="memo-shimmer">正在获取释义...</span></div>';
 
     const saveBtn = popup.querySelector('#memo-save-btn');
@@ -457,6 +488,11 @@ function isChineseSentence(text) {
     const totalLength = text.length;
     const chineseRatio = chineseCharCount / totalLength;
     return chineseRatio > 0.3 && chineseCharCount >= 2;
+}
+
+function escapeHtml(text) {
+    if (!text) return text;
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 
 function saveWord(data) {

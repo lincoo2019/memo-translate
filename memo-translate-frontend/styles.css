@@ -568,3 +568,48 @@
     color: #6b7280;
     line-height: 1.4;
 }
+
+.memo-chinese-sentence-actions {
+    padding: 16px;
+    text-align: center;
+}
+
+.memo-original-text {
+    font-size: 15px;
+    color: #1f2937;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border-left: 3px solid var(--memo-primary);
+    line-height: 1.6;
+}
+
+.memo-highlight-btn {
+    background: linear-gradient(135deg, var(--memo-primary) 0%, #6366f1 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.memo-highlight-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
+}
+
+.memo-highlight-btn:active {
+    transform: translateY(0);
+}
+
+.memo-highlight-btn:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
